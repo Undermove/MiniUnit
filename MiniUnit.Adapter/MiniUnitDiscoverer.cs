@@ -26,7 +26,7 @@ public sealed class MiniUnitDiscoverer : ITestDiscoverer
                 continue;
             }
 
-            foreach (var t in asm.GetTypes().Where(t => t.GetCustomAttribute<TestFixtureAttribute>() != null))
+            foreach (var t in asm.GetTypes().Where(t => t.GetCustomAttribute<Attributes>() != null))
             {
                 var tests = t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                     .Where(m => m.GetCustomAttribute<TestAttribute>() != null && m.GetParameters().Length == 0);

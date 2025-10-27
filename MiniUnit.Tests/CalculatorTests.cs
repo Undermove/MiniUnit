@@ -1,8 +1,9 @@
 using System.Threading.Tasks;
+using MiniUnit.Adapter.Reflection;
 
 namespace MiniUnit.Tests.Reflection;
 
-[TestFixture]
+[Attributes]
 public class CalculatorTests
 {
     private Calculator _calc = null!;

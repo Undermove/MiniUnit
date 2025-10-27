@@ -5,13 +5,11 @@
     <LangVersion>12.0</LangVersion>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AssemblyName>MiniUnit.TestAdapter</AssemblyName>
+    <RootNamespace>MiniUnit.Adapter.Reflection</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="17.14.0" />
     <PackageReference Include="System.ComponentModel.Composition" Version="5.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MiniUnit\MiniUnit.csproj" />
   </ItemGroup>
 </Project>
