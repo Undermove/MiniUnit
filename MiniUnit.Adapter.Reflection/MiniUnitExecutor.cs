@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -10,6 +11,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace MiniUnit.Adapter.Reflection;
 
+[Export(typeof(ITestExecutor))]
 [ExtensionUri(AdapterConstants.ExecutorUriString)]
 public sealed class MiniUnitExecutor : ITestExecutor
 {

@@ -6,14 +6,11 @@ namespace MiniUnit.Tests.Reflection;
 public class CalculatorTests
 {
     private Calculator _calc = null!;
-    private ILogger _log = null!;
 
     [SetUp]
     public void SetUp()
     {
-        var lf = TestLog.CreateLoggerFactory();
-        _log = lf.CreateLogger("Calc");
-        _calc = new Calculator(_log);
+        _calc = new Calculator();
         TestLog.WriteLine("SetUp complete");
     }
 
@@ -32,13 +29,9 @@ public class CalculatorTests
     }
 }
 
-public sealed class Calculator(ILogger log)
+public sealed class Calculator
 {
-    public int Add(int a, int b)
-    {
-        log.LogInformation("Add({A},{B})", a, b);
-        return a + b;
-    }
+    public int Add(int a, int b) => a + b;
     public int Div(int a, int b) => a / b;
     public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
 }

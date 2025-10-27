@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Linq;
 using System.Reflection;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
@@ -8,6 +9,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace MiniUnit.Adapter.Reflection;
 
+[Export(typeof(ITestDiscoverer))]
 [FileExtension(".dll")]
 [DefaultExecutorUri(AdapterConstants.ExecutorUriString)]
 public sealed class MiniUnitDiscoverer : ITestDiscoverer
