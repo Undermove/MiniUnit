@@ -1,0 +1,61 @@
+# Visual Studio / Rider
+.vs/
+.idea/
+.rider/
+*.sln.iml
+*.swp
+*.swo
+*~
+
+# Build results
+bin/
+obj/
+out/
+dist/
+
+# User-specific files
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+# NuGet
+.nuget/
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+
+# Local environment
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+.Trashes
+ehthumbs.db
+
+# IDE files
+*.code-workspace
+.vscode/
+
+# OS specific
+Thumbs.db
+
+# Test results
+TestResults/
+*.trx
+coverage/
+
+# Build logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
