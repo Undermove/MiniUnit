@@ -21,3 +21,6 @@ public sealed class TearDownAttribute : Attribute;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class OneTimeSetUpAttribute : Attribute;
 
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class OneTimeTearDownAttribute : Attribute;
+
