@@ -21,12 +21,14 @@ public sealed class MiniUnitExecutor : ITestExecutor
     public void RunTests(IEnumerable<string>? sources, IRunContext? runContext, IFrameworkHandle? frameworkHandle)
     {
         var sink = new MiniUnitDiscovererCollectingSink();
-        new MiniUnitDiscoverer().DiscoverTests(sources, runContext, frameworkHandle, sink);
+        if (sources != null && runContext != null && frameworkHandle != null)
+            new MiniUnitDiscoverer().DiscoverTests(sources, runContext, frameworkHandle, sink);
         RunTests(sink.Collected, runContext, frameworkHandle);
     }
 
     public void RunTests(IEnumerable<TestCase>? tests, IRunContext? runContext, IFrameworkHandle? frameworkHandle)
     {
+        if (tests == null || frameworkHandle == null) return;
         foreach (var group in tests.GroupBy(t => t.Source))
         {
             Assembly asm;
@@ -36,7 +38,7 @@ public sealed class MiniUnitExecutor : ITestExecutor
                 foreach (var tc in group)
                 {
                     var tr = new TestResult(tc) { Outcome = TestOutcome.Failed, ErrorMessage = e.GetBaseException().Message };
-                    frameworkHandle.RecordResult(tr);
+                    frameworkHandle?.RecordResult(tr);
                 }
                 continue;
             }
@@ -49,11 +51,11 @@ public sealed class MiniUnitExecutor : ITestExecutor
                 var m = t?.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
                 var result = new TestResult(tc);
-                frameworkHandle.RecordStart(tc);
+                frameworkHandle?.RecordStart(tc);
                 var sw = Stopwatch.StartNew();
 
                 using var capture = new TestOutputCapture(line =>
-                    frameworkHandle.SendMessage(TestMessageLevel.Informational, $"[{tc.DisplayName}] {line}"));
+                    frameworkHandle?.SendMessage(TestMessageLevel.Informational, $"[{tc.DisplayName}] {line}"));
                 TestLog.Current.Value = capture;
 
                 try
@@ -94,8 +96,8 @@ public sealed class MiniUnitExecutor : ITestExecutor
                         result.Messages.Add(new TestResultMessage(TestResultMessage.StandardOutCategory, all));
 
                     result.Duration = sw.Elapsed;
-                    frameworkHandle.RecordResult(result);
-                    frameworkHandle.RecordEnd(tc, result.Outcome);
+                    frameworkHandle?.RecordResult(result);
+                    frameworkHandle?.RecordEnd(tc, result.Outcome);
                     TestLog.Current.Value = null;
                 }
             }
