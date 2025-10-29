@@ -19,20 +19,24 @@ public sealed class MiniUnitDiscoverer : ITestDiscoverer
         foreach (var source in sources)
         {
             Assembly? asm;
-            try { asm = Assembly.LoadFrom(source); }
+            try
+            {
+                asm = Assembly.LoadFrom(source);
+            }
             catch (Exception e)
             {
                 logger.SendMessage(TestMessageLevel.Warning, $"MiniUnit.Reflection: can't load {source}: {e.GetBaseException().Message}");
                 continue;
             }
 
-            foreach (var t in asm.GetTypes().Where(t => t.GetCustomAttribute<Attributes>() != null))
+            var allTestTypes = asm.GetTypes().Where(t => t.GetCustomAttribute<Attributes>() != null);
+            foreach (var testType in allTestTypes)
             {
-                var tests = t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                var tests = testType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                     .Where(m => m.GetCustomAttribute<TestAttribute>() != null && m.GetParameters().Length == 0);
                 foreach (var m in tests)
                 {
-                    var fq = $"{t.FullName}.{m.Name}";
+                    var fq = $"{testType.FullName}.{m.Name}";
                     var display = m.GetCustomAttribute<TestAttribute>()?.Name ?? m.Name;
                     var tc = new TestCase(fq, AdapterConstants.ExecutorUri, source) { DisplayName = display };
                     discoverySink.SendTestCase(tc);

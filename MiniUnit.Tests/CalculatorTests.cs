@@ -15,7 +15,7 @@ public class CalculatorTests
         TestLog.WriteLine("SetUp complete");
     }
 
-    [Test(Name = "Сложение работает")]
+    [Test(Name = "Addition works")]
     public void Add_Works() => Assert.AreEqual(5, _calc.Add(2, 3));
 
     [Test]
