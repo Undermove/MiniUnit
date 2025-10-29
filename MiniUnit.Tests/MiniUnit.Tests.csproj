@@ -12,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MiniUnit.Adapter\MiniUnit.Adapter.csproj" />
+    <ProjectReference Include="..\MiniUnit.CalculatorLib\MiniUnit.CalculatorLib.csproj" />
   </ItemGroup>
 </Project>

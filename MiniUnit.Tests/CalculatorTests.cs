@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using MiniUnit.Adapter.Reflection;
+using MiniUnit.CalculatorLib;
 
 namespace MiniUnit.Tests.Reflection;
 
@@ -28,11 +29,4 @@ public class CalculatorTests
         var v = await _calc.AddAsync(40, 2);
         Assert.AreEqual(42, v);
     }
-}
-
-public sealed class Calculator
-{
-    public int Add(int a, int b) => a + b;
-    public int Div(int a, int b) => a / b;
-    public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
 }

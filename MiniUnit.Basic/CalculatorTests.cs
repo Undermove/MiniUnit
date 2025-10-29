@@ -1,3 +1,5 @@
+using MiniUnit.CalculatorLib;
+
 namespace MiniUnit.Basic;
 
 [TestFixture]
@@ -26,11 +28,4 @@ public class CalculatorTests
         var v = await _calc.AddAsync(10, 32);
         Assert.AreEqual(42, v);
     }
-}
-
-public sealed class Calculator
-{
-    public int Add(int a, int b) => a + b;
-    public int Div(int a, int b) => a / b;
-    public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
 }

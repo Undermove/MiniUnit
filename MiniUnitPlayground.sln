@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniUnit.Basic", "MiniUnit.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Basic", "Basic", "{B7367E5D-832A-4847-A06B-4F113EBE06EF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniUnit.CalculatorLib", "MiniUnit.CalculatorLib\MiniUnit.CalculatorLib.csproj", "{AC0F93F6-48DE-4082-AB14-9E03FCA1B93B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,6 +30,10 @@ Global
 		{120145EC-6C65-484E-B329-445312E39BCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{120145EC-6C65-484E-B329-445312E39BCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{120145EC-6C65-484E-B329-445312E39BCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC0F93F6-48DE-4082-AB14-9E03FCA1B93B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC0F93F6-48DE-4082-AB14-9E03FCA1B93B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC0F93F6-48DE-4082-AB14-9E03FCA1B93B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC0F93F6-48DE-4082-AB14-9E03FCA1B93B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{120145EC-6C65-484E-B329-445312E39BCB} = {B7367E5D-832A-4847-A06B-4F113EBE06EF}
