@@ -46,24 +46,14 @@ public sealed class MiniUnitExecutor : ITestExecutor
                 continue;
             }
 
-            foreach (var testCase in testFile)
+            var groupByClass = testFile.GroupBy(tc => Split(tc.FullyQualifiedName).typeName);
+            foreach (var testClassGroup in groupByClass)
             {
-                if (_cancel) return;
-                var (typeName, methodName) = Split(testCase.FullyQualifiedName);
-                var testClass = asm.GetType(typeName);
-                var test = testClass?.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var testClass = asm.GetType(testClassGroup.Key);
+                if (testClass == null) continue;
 
-                var result = new TestResult(testCase);
-                frameworkHandle?.RecordStart(testCase);
-                var sw = Stopwatch.StartNew();
-
-                using var capture = new TestOutputCapture(line =>
-                    frameworkHandle?.SendMessage(TestMessageLevel.Informational, $"[{testCase.DisplayName}] {line}"));
-                TestLog.Current.Value = capture;
-                
                 try
                 {
-                    if (testClass == null || test == null) throw new InvalidOperationException($"Test not found: {testCase.FullyQualifiedName}");
                     var instance = Activator.CreateInstance(testClass);
 
                     var oneTimeSetUp = FindSingle(testClass, typeof(OneTimeSetUpAttribute));
@@ -72,38 +62,69 @@ public sealed class MiniUnitExecutor : ITestExecutor
                     var tearDown = FindSingle(testClass, typeof(TearDownAttribute));
 
                     Invoke(instance, oneTimeSetUp);
-                    Invoke(instance, setUp);
-                    Invoke(instance, test);
-                    Invoke(instance, tearDown);
-                    Invoke(instance, oneTimeTearDown);
 
-                    result.Outcome = TestOutcome.Passed;
-                }
-                catch (TargetInvocationException tie) when (tie.InnerException is AssertionException aex)
-                {
-                    result.Outcome = TestOutcome.Failed;
-                    result.ErrorMessage = aex.Message;
-                    result.ErrorStackTrace = aex.StackTrace;
+                    foreach (var testCase in testClassGroup)
+                    {
+                        if (_cancel) return;
+
+                        var (_, methodName) = Split(testCase.FullyQualifiedName);
+                        var test = testClass.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                        var result = new TestResult(testCase);
+                        frameworkHandle?.RecordStart(testCase);
+                        var sw = Stopwatch.StartNew();
+
+                        using var capture = new TestOutputCapture(line =>
+                            frameworkHandle?.SendMessage(TestMessageLevel.Informational, $"[{testCase.DisplayName}] {line}"));
+                        TestLog.Current.Value = capture;
+
+                        try
+                        {
+                            if (test == null) throw new InvalidOperationException($"Test not found: {testCase.FullyQualifiedName}");
+
+                            Invoke(instance, setUp);
+                            Invoke(instance, test);
+                            Invoke(instance, tearDown);
+
+                            result.Outcome = TestOutcome.Passed;
+                        }
+                        catch (TargetInvocationException tie) when (tie.InnerException is AssertionException aex)
+                        {
+                            result.Outcome = TestOutcome.Failed;
+                            result.ErrorMessage = aex.Message;
+                            result.ErrorStackTrace = aex.StackTrace;
+                        }
+                        catch (Exception e)
+                        {
+                            result.Outcome = TestOutcome.Failed;
+                            result.ErrorMessage = e.GetBaseException().Message;
+                            result.ErrorStackTrace = e.ToString();
+                        }
+                        finally
+                        {
+                            sw.Stop();
+                            var all = capture.GetBufferedText();
+                            if (!string.IsNullOrWhiteSpace(all))
+                            {
+                                result.Messages.Add(new TestResultMessage(TestResultMessage.StandardOutCategory, all));
+                            }
+
+                            result.Duration = sw.Elapsed;
+                            frameworkHandle?.RecordResult(result);
+                            frameworkHandle?.RecordEnd(testCase, result.Outcome);
+                            TestLog.Current.Value = null;
+                        }
+                    }
+
+                    Invoke(instance, oneTimeTearDown);
                 }
                 catch (Exception e)
                 {
-                    result.Outcome = TestOutcome.Failed;
-                    result.ErrorMessage = e.GetBaseException().Message;
-                    result.ErrorStackTrace = e.ToString();
-                }
-                finally
-                {
-                    sw.Stop();
-                    var all = capture.GetBufferedText();
-                    if (!string.IsNullOrWhiteSpace(all))
+                    foreach (var testCase in testClassGroup)
                     {
-                        result.Messages.Add(new TestResultMessage(TestResultMessage.StandardOutCategory, all));
+                        var tr = new TestResult(testCase) { Outcome = TestOutcome.Failed, ErrorMessage = e.GetBaseException().Message };
+                        frameworkHandle?.RecordResult(tr);
                     }
-
-                    result.Duration = sw.Elapsed;
-                    frameworkHandle?.RecordResult(result);
-                    frameworkHandle?.RecordEnd(testCase, result.Outcome);
-                    TestLog.Current.Value = null;
                 }
             }
         }
