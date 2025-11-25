@@ -2,9 +2,6 @@ using System;
 
 namespace MiniUnit.Adapter.Reflection;
 
-[AttributeUsage(AttributeTargets.Class)]
-public sealed class Attributes : Attribute;
-
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class TestAttribute : Attribute
 {
