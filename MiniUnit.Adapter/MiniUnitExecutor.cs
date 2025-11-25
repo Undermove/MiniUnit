@@ -22,20 +22,23 @@ public sealed class MiniUnitExecutor : ITestExecutor
     {
         var sink = new MiniUnitDiscovererCollectingSink();
         if (sources != null && runContext != null && frameworkHandle != null)
+        {
             new MiniUnitDiscoverer().DiscoverTests(sources, runContext, frameworkHandle, sink);
+        }
         RunTests(sink.Collected, runContext, frameworkHandle);
     }
 
     public void RunTests(IEnumerable<TestCase>? tests, IRunContext? runContext, IFrameworkHandle? frameworkHandle)
     {
         if (tests == null || frameworkHandle == null) return;
-        foreach (var group in tests.GroupBy(t => t.Source))
+        var groupByTestFile = tests.GroupBy(t => t.Source);
+        foreach (var testFile in groupByTestFile)
         {
             Assembly asm;
-            try { asm = Assembly.LoadFrom(group.Key); }
+            try { asm = Assembly.LoadFrom(testFile.Key); }
             catch (Exception e)
             {
-                foreach (var tc in group)
+                foreach (var tc in testFile)
                 {
                     var tr = new TestResult(tc) { Outcome = TestOutcome.Failed, ErrorMessage = e.GetBaseException().Message };
                     frameworkHandle?.RecordResult(tr);
@@ -43,34 +46,34 @@ public sealed class MiniUnitExecutor : ITestExecutor
                 continue;
             }
 
-            foreach (var tc in group)
+            foreach (var testCase in testFile)
             {
                 if (_cancel) return;
-                var (typeName, methodName) = Split(tc.FullyQualifiedName);
-                var t = asm.GetType(typeName);
-                var m = t?.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var (typeName, methodName) = Split(testCase.FullyQualifiedName);
+                var testClass = asm.GetType(typeName);
+                var test = testClass?.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
-                var result = new TestResult(tc);
-                frameworkHandle?.RecordStart(tc);
+                var result = new TestResult(testCase);
+                frameworkHandle?.RecordStart(testCase);
                 var sw = Stopwatch.StartNew();
 
                 using var capture = new TestOutputCapture(line =>
-                    frameworkHandle?.SendMessage(TestMessageLevel.Informational, $"[{tc.DisplayName}] {line}"));
+                    frameworkHandle?.SendMessage(TestMessageLevel.Informational, $"[{testCase.DisplayName}] {line}"));
                 TestLog.Current.Value = capture;
                 
                 try
                 {
-                    if (t == null || m == null) throw new InvalidOperationException($"Test not found: {tc.FullyQualifiedName}");
-                    var instance = Activator.CreateInstance(t);
+                    if (testClass == null || test == null) throw new InvalidOperationException($"Test not found: {testCase.FullyQualifiedName}");
+                    var instance = Activator.CreateInstance(testClass);
 
-                    var oneTimeSetUp = FindSingle(t, typeof(OneTimeSetUpAttribute));
-                    var oneTimeTearDown = FindSingle(t, typeof(OneTimeTearDownAttribute));
-                    var setUp = FindSingle(t, typeof(SetUpAttribute));
-                    var tearDown = FindSingle(t, typeof(TearDownAttribute));
+                    var oneTimeSetUp = FindSingle(testClass, typeof(OneTimeSetUpAttribute));
+                    var oneTimeTearDown = FindSingle(testClass, typeof(OneTimeTearDownAttribute));
+                    var setUp = FindSingle(testClass, typeof(SetUpAttribute));
+                    var tearDown = FindSingle(testClass, typeof(TearDownAttribute));
 
                     Invoke(instance, oneTimeSetUp);
                     Invoke(instance, setUp);
-                    Invoke(instance, m);
+                    Invoke(instance, test);
                     Invoke(instance, tearDown);
                     Invoke(instance, oneTimeTearDown);
 
@@ -93,11 +96,13 @@ public sealed class MiniUnitExecutor : ITestExecutor
                     sw.Stop();
                     var all = capture.GetBufferedText();
                     if (!string.IsNullOrWhiteSpace(all))
+                    {
                         result.Messages.Add(new TestResultMessage(TestResultMessage.StandardOutCategory, all));
+                    }
 
                     result.Duration = sw.Elapsed;
                     frameworkHandle?.RecordResult(result);
-                    frameworkHandle?.RecordEnd(tc, result.Outcome);
+                    frameworkHandle?.RecordEnd(testCase, result.Outcome);
                     TestLog.Current.Value = null;
                 }
             }
@@ -123,7 +128,7 @@ public sealed class MiniUnitExecutor : ITestExecutor
 
     private sealed class MiniUnitDiscovererCollectingSink : ITestCaseDiscoverySink, IMessageLogger, IFrameworkHandle
     {
-        public readonly List<TestCase> Collected = new();
+        public readonly List<TestCase> Collected = [];
         public void SendTestCase(TestCase discoveredTest) => Collected.Add(discoveredTest);
         void IMessageLogger.SendMessage(TestMessageLevel testMessageLevel, string message) { }
         public bool EnableShutdownAfterTestRun { get => false; set { } }

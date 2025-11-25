@@ -36,10 +36,10 @@ public sealed class MiniUnitDiscoverer : ITestDiscoverer
                     .Where(m => m.GetCustomAttribute<TestAttribute>() != null && m.GetParameters().Length == 0);
                 foreach (var m in tests)
                 {
-                    var fq = $"{testType.FullName}.{m.Name}";
+                    var fullyQualifiedName = $"{testType.FullName}.{m.Name}";
                     var display = m.GetCustomAttribute<TestAttribute>()?.Name ?? m.Name;
-                    var tc = new TestCase(fq, AdapterConstants.ExecutorUri, source) { DisplayName = display };
-                    discoverySink.SendTestCase(tc);
+                    var testCase = new TestCase(fullyQualifiedName, AdapterConstants.ExecutorUri, source) { DisplayName = display };
+                    discoverySink.SendTestCase(testCase);
                 }
             }
         }
