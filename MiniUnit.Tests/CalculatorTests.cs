@@ -9,11 +9,16 @@ namespace MiniUnit.Tests.Reflection;
 public class CalculatorTests
 {
     private Calculator _calc = null!;
+    private ILoggerFactory _loggerFactory = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _calc = new Calculator();
+        _loggerFactory = LoggerFactory.Create(builder =>
+            builder.AddTestLogCapture()
+        );
+        var logger = _loggerFactory.CreateLogger<Calculator>();
+        _calc = new Calculator(logger);
         TestLog.WriteLine("SetUp complete");
     }
 

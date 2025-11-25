@@ -18,7 +18,8 @@ public static class MiniUnitRunner
         foreach (var fxType in fixtures)
         {
             var fxName = fxType.FullName ?? fxType.Name;
-            var (oneTimeSetUp, oneTimeTearDown, setUp, tearDown, tests) = InspectFixture(fxType, filter);
+            var (oneTimeSetUp, oneTimeTearDown, setUp, tearDown, tests)
+                = InspectFixture(fxType, filter);
 
             object? fxInstance;
 
@@ -77,21 +78,28 @@ public static class MiniUnitRunner
     private static (MethodInfo? oneTimeSetUp, MethodInfo? oneTimeTearDown, MethodInfo? setUp, MethodInfo? tearDown, List<MethodInfo> tests)
         InspectFixture(Type fxType, string? filter)
     {
-        MethodInfo? otsu = null, otd = null, su = null, td = null;
+        MethodInfo? otsu = null;
+        MethodInfo? otd = null;
+        MethodInfo? su = null;
+        MethodInfo? td = null;
         var tests = new List<MethodInfo>();
 
         foreach (var m in fxType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
         {
             if (m.GetCustomAttribute<OneTimeSetUpAttribute>() != null) otsu = m;
-            else if (m.GetCustomAttribute<Attributes>() != null) otd = m;
             else if (m.GetCustomAttribute<SetUpAttribute>() != null) su = m;
             else if (m.GetCustomAttribute<TearDownAttribute>() != null) td = m;
+            else if (m.GetCustomAttribute<OneTimeTearDownAttribute>() != null) otd = m;
             else if (m.GetCustomAttribute<TestAttribute>() != null)
             {
-                if (m.GetParameters().Length == 0)
+                if (m.GetParameters().Length != 0)
                 {
-                    if (string.IsNullOrWhiteSpace(filter) || m.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                        tests.Add(m);
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(filter) || m.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                {
+                    tests.Add(m);
                 }
             }
         }

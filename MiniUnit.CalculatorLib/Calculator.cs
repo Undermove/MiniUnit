@@ -6,9 +6,9 @@ public sealed class Calculator
 {
     private readonly ILogger<Calculator> _logger;
 
-    public Calculator()
+    public Calculator(ILogger<Calculator>? logger = null)
     {
-        _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<Calculator>();
+        _logger = logger ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<Calculator>();
     }
 
     public int Add(int a, int b)

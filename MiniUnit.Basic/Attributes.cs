@@ -1,8 +1,5 @@
 namespace MiniUnit.Basic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class Attributes : Attribute;
-
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class TestFixtureAttribute : Attribute;
 

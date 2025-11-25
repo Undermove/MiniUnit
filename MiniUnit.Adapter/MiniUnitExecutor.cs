@@ -57,7 +57,7 @@ public sealed class MiniUnitExecutor : ITestExecutor
                 using var capture = new TestOutputCapture(line =>
                     frameworkHandle?.SendMessage(TestMessageLevel.Informational, $"[{tc.DisplayName}] {line}"));
                 TestLog.Current.Value = capture;
-
+                
                 try
                 {
                     if (t == null || m == null) throw new InvalidOperationException($"Test not found: {tc.FullyQualifiedName}");
