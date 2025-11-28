@@ -2,6 +2,10 @@
   <Folder Name="/Basic/">
     <Project Path="MiniUnit.Basic\MiniUnit.Basic.csproj" Type="Classic C#" />
   </Folder>
+  <Folder Name="/MTP/">
+    <Project Path="MTPImplementation\MiniUnit.Adapter\MiniUnit.Adapter.csproj" Type="Classic C#" />
+    <Project Path="MTPImplementation\MiniUnit.Tests\MiniUnit.Tests.csproj" Type="Classic C#" />
+  </Folder>
   <Folder Name="/VsTest/">
     <Project Path="VsTestImplementation\MiniUnit.Adapter\MiniUnit.Adapter.csproj" Type="Classic C#" />
     <Project Path="VsTestImplementation\MiniUnit.Tests\MiniUnit.Tests.csproj" Type="Classic C#" />
