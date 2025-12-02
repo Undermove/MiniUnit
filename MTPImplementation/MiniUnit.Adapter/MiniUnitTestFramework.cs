@@ -8,22 +8,18 @@ using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Extensions.TestFramework;
 using Microsoft.Testing.Platform.Messages;
 using Microsoft.Testing.Platform.Requests;
+// ReSharper disable UnusedMember.Local
 
 namespace MiniUnit.Adapter.MTP;
 
-public class MiniUnitTestFramework : ITestFramework, IDataProducer
+public class MiniUnitTestFramework(ITestFrameworkCapabilities capabilities, IServiceProvider serviceProvider)
+    : ITestFramework, IDataProducer
 {
-    private readonly ITestFrameworkCapabilities _capabilities;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly ITestFrameworkCapabilities _capabilities = capabilities;
+    private readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     private readonly TestDiscoverer _discoverer = new();
     private readonly TestExecutor _executor = new();
     private List<TestCase>? _discoveredTests;
-
-    public MiniUnitTestFramework(ITestFrameworkCapabilities capabilities, IServiceProvider serviceProvider)
-    {
-        _capabilities = capabilities;
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-    }
 
     public string Uid => "MiniUnit";
     public string DisplayName => "MiniUnit Test Framework";
@@ -109,7 +105,7 @@ public class MiniUnitTestFramework : ITestFramework, IDataProducer
 
     private IProperty GetStateProperty(TestResult? result) =>
         result?.Outcome == TestOutcome.Passed ? PassedTestNodeStateProperty.CachedInstance :
-        result?.Outcome == TestOutcome.Failed ? (IProperty)new FailedTestNodeStateProperty(new Exception(result.ErrorMessage)) :
+        result?.Outcome == TestOutcome.Failed ? new FailedTestNodeStateProperty(new Exception(result.ErrorMessage)) :
         SkippedTestNodeStateProperty.CachedInstance;
 
     private List<TestCase> GetDiscoveredTests()
