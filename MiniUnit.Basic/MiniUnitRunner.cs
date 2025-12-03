@@ -6,35 +6,43 @@ public static class MiniUnitRunner
 {
     public static async Task<int> RunAsync(Assembly asm, string? filter = null)
     {
-        var fixtures = asm.GetTypes()
+        // I. Ищем тесты в сборке - то есть все классы с атрибутом TestFixtureAttribute
+        IEnumerable<Type> fixtures = asm.GetTypes()
             .Where(t => t.GetCustomAttribute<TestFixtureAttribute>() != null)
             .OrderBy(t => t.FullName)
             .ToArray();
 
+        // Инициализируем счетчики статистики
         var total = 0;
         var passed = 0;
         var failed = 0;
 
-        foreach (var fxType in fixtures)
+        // II. Запускаем тесты - проходимся по всем классам
+        foreach (var fixture in fixtures)
         {
-            var fxName = fxType.FullName ?? fxType.Name;
+            var fixtureName = fixture.FullName ?? fixture.Name;
+            // 1. Находим все тестовые методы, сетапы и тирдауны
             var (oneTimeSetUp, oneTimeTearDown, setUp, tearDown, tests)
-                = InspectFixture(fxType, filter);
+                = InspectFixture(fixture, filter);
 
             object? fxInstance;
 
+            // 2. Создаем класс нашего теста, чтобы было у кого вызывать методы
+            // и запускаем OneTimeSetup первым
             try
             {
-                fxInstance = Activator.CreateInstance(fxType);
+                fxInstance = Activator.CreateInstance(fixture);
                 await InvokeAsync(fxInstance, oneTimeSetUp);
             }
             catch (Exception e)
             {
-                WriteRed($"[Fixture ERROR] {fxName}: {e.GetBaseException().Message}");
+                // Если он не прошел, то мы можем пометить все тесты как упавшие и завершить тестирование
+                WriteRed($"[Fixture ERROR] {fixtureName}: {e.GetBaseException().Message}");
                 failed += tests.Count;
                 continue;
             }
 
+            // 3. Запускаем тестовые методы по очереди
             foreach (var test in tests)
             {
                 total++;
@@ -42,35 +50,42 @@ public static class MiniUnitRunner
 
                 try
                 {
+                    // 4. Перед запуском теста прогоняем Setup
                     await InvokeAsync(fxInstance, setUp);
+                    // 5. Потом сам тест
                     await InvokeAsync(fxInstance, test);
+                    // 6. Ну и делаем тир-даун
                     await InvokeAsync(fxInstance, tearDown);
-                    WriteGreen($"[PASS] {fxName}.{display}");
+                    WriteGreen($"[PASS] {fixtureName}.{display}");
                     passed++;
                 }
                 catch (TargetInvocationException tie)
                 {
+                    // Если не получилось инициализировать тест, то пишем что не удалось и помечаем тест красным
                     var ex = tie.InnerException ?? tie;
-                    WriteRed($"[FAIL] {fxName}.{display}\n{ex.GetType().Name}: {ex.Message}");
+                    WriteRed($"[FAIL] {fixtureName}.{display}\n{ex.GetType().Name}: {ex.Message}");
                     failed++;
                 }
                 catch (Exception ex)
                 {
-                    WriteRed($"[FAIL] {fxName}.{display}\n{ex.GetType().Name}: {ex.Message}");
+                    // Если тест не прошел по внутренней причине, тоже помечаем его красным
+                    WriteRed($"[FAIL] {fixtureName}.{display}\n{ex.GetType().Name}: {ex.Message}");
                     failed++;
                 }
             }
 
+            // 7. Ну и напоследок после всех тестов запускаем OneTimeTearDown
             try
             {
                 await InvokeAsync(fxInstance, oneTimeTearDown);
             }
             catch (Exception e)
             {
-                WriteRed($"[Fixture TearDown ERROR] {fxName}: {e.GetBaseException().Message}");
+                WriteRed($"[Fixture TearDown ERROR] {fixtureName}: {e.GetBaseException().Message}");
             }
         }
 
+        // Пишем итог
         Console.WriteLine($"\nTotal: {total}, Passed: {passed}, Failed: {failed}");
         return failed == 0 ? 0 : 1;
     }

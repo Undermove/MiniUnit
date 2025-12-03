@@ -3,6 +3,9 @@ namespace MiniUnit.Basic;
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class TestFixtureAttribute : Attribute;
 
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class Parallelizable : Attribute;
+
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class TestAttribute : Attribute 
 {
