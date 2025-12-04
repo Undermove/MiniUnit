@@ -1,4 +1,5 @@
 using MiniUnit.CalculatorLib;
+// ReSharper disable All
 
 namespace MiniUnit.Basic;
 

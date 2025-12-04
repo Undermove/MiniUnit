@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Как работают тестовые фреймворки .NET</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .presentation {
+            width: 100%;
+            max-width: 1400px;
+            aspect-ratio: 16 / 9;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .slides-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 80px 100px;
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            opacity: 1;
+            position: relative;
+        }
+
+        .slide-title {
+            font-size: 3.5em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #333;
+            line-height: 1.3;
+        }
+
+        .slide-subtitle {
+            font-size: 1.8em;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .slide-author {
+            font-size: 1.4em;
+            color: #888;
+            margin-top: 60px;
+            font-style: italic;
+        }
+
+        .title-slide {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .title-slide .slide-title,
+        .title-slide .slide-subtitle,
+        .title-slide .slide-author {
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .content-slide {
+            background: white;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            font-size: 1.2em;
+            color: #999;
+            font-weight: 500;
+        }
+
+        .title-slide .slide-number {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .nav-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-button:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        .nav-button:active {
+            transform: scale(0.95);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: #e0e0e0;
+            margin: 0 20px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .keyboard-hint {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 0.85em;
+            color: #999;
+            pointer-events: none;
+        }
+
+        .code-block {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            overflow-x: auto;
+            max-width: 90%;
+            line-height: 1.6;
+            color: #333;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .code-line {
+            opacity: 0;
+            animation: slideIn 0.5s ease-out forwards;
+            min-height: 1.6em;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide.active .code-line {
+            animation: slideIn 0.5s ease-out forwards;
+        }
+
+        .code-line:nth-child(1) { animation-delay: 0.1s; }
+        .code-line:nth-child(2) { animation-delay: 0.3s; }
+        .code-line:nth-child(3) { animation-delay: 0.5s; }
+        .code-line:nth-child(4) { animation-delay: 0.7s; }
+        .code-line:nth-child(5) { animation-delay: 0.9s; }
+        .code-line:nth-child(6) { animation-delay: 1.1s; }
+        .code-line:nth-child(7) { animation-delay: 1.3s; }
+        .code-line:nth-child(8) { animation-delay: 1.5s; }
+        .code-line:nth-child(9) { animation-delay: 1.7s; }
+        .code-line:nth-child(10) { animation-delay: 1.9s; }
+        .code-line:nth-child(11) { animation-delay: 2.1s; }
+        .code-line:nth-child(12) { animation-delay: 2.3s; }
+        .code-line:nth-child(13) { animation-delay: 2.5s; }
+        .code-line:nth-child(14) { animation-delay: 2.7s; }
+        .code-line:nth-child(15) { animation-delay: 2.9s; }
+        .code-line:nth-child(16) { animation-delay: 3.1s; }
+        .code-line:nth-child(17) { animation-delay: 3.3s; }
+        .code-line:nth-child(18) { animation-delay: 3.5s; }
+        .code-line:nth-child(19) { animation-delay: 3.7s; }
+        .code-line:nth-child(20) { animation-delay: 3.9s; }
+
+        .keyword {
+            color: #0066cc;
+            font-weight: bold;
+        }
+
+        .class-name {
+            color: #d9534f;
+        }
+
+        .attribute {
+            color: #5cb85c;
+        }
+
+        .comment {
+            color: #999;
+            font-style: italic;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-width: 98%;
+            margin: 20px auto;
+            transform: scale(2);
+            transform-origin: center top;
+        }
+
+        .list-item {
+            text-align: left;
+            font-size: 1.3em;
+            margin: 15px 0;
+            padding: 15px 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+
+        .list-item strong {
+            color: #667eea;
+        }
+
+        .section-title {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+            margin-top: -20px;
+        }
+
+        .two-column {
+            display: flex;
+            justify-content: space-around;
+            gap: 40px;
+            width: 100%;
+        }
+
+        .column {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 40px 30px;
+            }
+
+            .slide-title {
+                font-size: 2.2em;
+            }
+
+            .section-title {
+                font-size: 1.8em;
+            }
+
+            .nav-button {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2em;
+            }
+
+            .keyboard-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <div class="keyboard-hint">← Стрелки →</div>
+        
+        <div class="slides-container">
+            <!-- Слайд 1: Титульный -->
+            <div class="slide title-slide active">
+                <h1 class="slide-title">Как работают тестовые фреймворки .NET</h1>
+                <p class="slide-subtitle">И как написать минимальный свой</p>
+                <div class="slide-author">Дмитрий Афонченко</div>
+                <div class="slide-number">1</div>
+            </div>
+
+            <!-- СЕКЦИЯ 1: Базовый тестовый фреймворк -->
+            
+            <!-- Слайд 2: Вводный слайд секции 1 -->
+            <div class="slide content-slide">
+                <h2 class="slide-title">Базовый тестовый фреймворк</h2>
+                <p class="slide-subtitle">Что нам нужно: атрибуты, ассерты и runner</p>
+                <div class="slide-number">2</div>
+            </div>
+
+            <!-- Слайд 3: CalculatorTests пример -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">Написанный тест</h2>
+                <div class="code-block" style="font-size: 1em;">
+                    <div class="code-line">[<span class="attribute">TestFixture</span>]</div>
+                    <div class="code-line"><span class="keyword">public class</span> <span class="class-name">CalculatorTests</span> {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span> Calculator _calc;</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;[<span class="attribute">SetUp</span>]</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private void</span> SetUp() => _calc = <span class="keyword">new</span> Calculator();</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;[<span class="attribute">Test</span>(Name = <span class="keyword">"Addition works"</span>)]</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public void</span> Add_Works() => Assert.AreEqual(<span class="keyword">5</span>, _calc.Add(<span class="keyword">2</span>, <span class="keyword">3</span>));</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;[<span class="attribute">Test</span>]</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public void</span> Div_ByZero_Throws() => Assert.Throws&lt;DivideByZeroException&gt;(...);</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">3</div>
+            </div>
+
+            <!-- Слайд 4: Attributes -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">Атрибуты (Attributes.cs)</h2>
+                <div class="code-block" style="font-size: 1em;">
+                    <div class="code-line">[<span class="attribute">AttributeUsage</span>(AttributeTargets.Class)]</div>
+                    <div class="code-line"><span class="keyword">public sealed class</span> <span class="class-name">TestFixtureAttribute</span> : Attribute;</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">[<span class="attribute">AttributeUsage</span>(AttributeTargets.Method)]</div>
+                    <div class="code-line"><span class="keyword">public sealed class</span> <span class="class-name">TestAttribute</span> : Attribute {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span> <span class="keyword">string</span>? Name { <span class="keyword">get</span>; <span class="keyword">set</span>; }</div>
+                    <div class="code-line">}</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">[<span class="attribute">AttributeUsage</span>(AttributeTargets.Method)]</div>
+                    <div class="code-line"><span class="keyword">public sealed class</span> <span class="class-name">SetUpAttribute</span> : Attribute;</div>
+                </div>
+                <div class="slide-number">4</div>
+            </div>
+
+            <!-- Слайд 5: Assert -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">Ассерты (Assert.cs)</h2>
+                <div class="code-block" style="font-size: 1em;">
+                    <div class="code-line"><span class="keyword">public static class</span> <span class="class-name">Assert</span> {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public static void</span> AreEqual&lt;T&gt;(T expected, T actual) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> (!EqualityComparer&lt;T&gt;.Default.Equals(expected, actual))</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">throw new</span> AssertionException(...);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public static</span> TException Throws&lt;TException&gt;(Action action) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span> { action(); }</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">catch</span> (TException ex) { <span class="keyword">return</span> ex; }</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">throw new</span> AssertionException(...);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">5</div>
+            </div>
+
+            <!-- Слайд 6: Runner -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">Runner (MiniUnitRunner.cs)</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">public static class</span> MiniUnitRunner {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public static async</span> Task&lt;<span class="keyword">int</span>&gt; RunAsync(Assembly asm) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// 1. Найти все классы с [TestFixture]</span></div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> fixtures = asm.GetTypes()</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.Where(t => t.GetCustomAttribute&lt;TestFixtureAttribute&gt;() != <span class="keyword">null</span>);</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// 2. Для каждого класса:</span></div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">foreach</span> (<span class="keyword">var</span> fixture <span class="keyword">in</span> fixtures) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// - Создать инстанс: Activator.CreateInstance()</span></div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// - Вызвать [OneTimeSetUp], [SetUp], [Test], [TearDown]</span></div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// - Поймать исключения и отчитаться о результатах</span></div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">6</div>
+            </div>
+
+            <!-- СЕКЦИЯ 2: VSTest -->
+            
+            <!-- Слайд 7: VSTest введение -->
+            <div class="slide content-slide">
+                <h2 class="slide-title">VSTest и его архитектура</h2>
+                <p class="slide-subtitle">Как Visual Studio запускает тесты</p>
+                <div class="slide-number">7</div>
+            </div>
+
+            <!-- Слайд 8: VSTest диаграмма -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">Процесс выполнения тестов в VSTest</h2>
+                <div class="mermaid">
+sequenceDiagram
+   participant VS as Visual Studio
+   participant VH as VSTestHost<br/>(отдельный процесс)
+   participant Disc as MiniUnitDiscoverer
+   participant Exec as MiniUnitExecutor
+   participant Asm as MiniUnit.Tests.dll
+   VS->>VH: 1. Запустить тесты
+   VH->>VH: 2. MEF: загрузить адаптеры<br/>из папки
+   VH->>Disc: 3. DiscoverTests()
+   Disc->>Asm: 4. Assembly.LoadFrom()
+   Disc->>Asm: 5. GetTypes().GetMethods([Test])
+   Disc->>VH: 6. SendTestCase(список)
+   VH->>VS: 7. Отправить найденные тесты
+   VS->>VH: 8. RunTests(выбранные)
+   VH->>Exec: 9. RunTests()
+   Exec->>Asm: 10. Assembly.LoadFrom()
+   Exec->>Asm: 11. Activator.CreateInstance()
+   Exec->>Asm: 12. Invoke([OneTimeSetUp])
+   Exec->>Asm: 13. Invoke([SetUp])
+   Exec->>Asm: 14. Invoke([Test])
+   Exec->>Asm: 15. Invoke([TearDown])
+   Exec->>Asm: 16. Invoke([OneTimeTearDown])
+   Exec->>VH: 17. RecordResult(TestResult)
+   VH->>VS: 18. Показать результаты
+                </div>
+                <div class="slide-number">8</div>
+            </div>
+
+            <!-- Слайд 9: Требования для VSTest -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">Требования для VSTest совместимости</h2>
+                <div style="text-align: left; font-size: 1.2em; max-width: 85%;">
+                    <div class="list-item"><strong>1. Внутри фреймворка:</strong> Атрибуты, API и Runner</div>
+                    <div class="list-item"><strong>2. Адаптерная DLL:</strong> ITestDiscoverer & ITestExecutor</div>
+                    <div class="list-item"><strong>3. Метаданные:</strong> [FileExtension], [DefaultExecutorUri]</div>
+                    <div class="list-item"><strong>4. Доставка:</strong> NuGet или VSIX пакет</div>
+                </div>
+                <div class="slide-number">9</div>
+            </div>
+
+            <!-- Слайд 10: TestDiscoverer пример -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">TestDiscoverer в VSTest</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">public class</span> TestDiscoverer {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span> <span class="keyword">void</span> DiscoverTests(string assemblyPath) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> asm = Assembly.LoadFrom(assemblyPath);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> allTestTypes = asm.GetTypes();</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">foreach</span> (<span class="keyword">var</span> testType <span class="keyword">in</span> allTestTypes) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> tests = testType.GetMethods()</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.Where(m => m.GetCustomAttribute&lt;TestAttribute&gt;() != <span class="keyword">null</span>);</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">foreach</span> (<span class="keyword">var</span> m <span class="keyword">in</span> tests)</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SendTestCase(<span class="keyword">new</span> TestCase(testType, m));</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">10</div>
+            </div>
+
+            <!-- Слайд 11: TestExecutor пример -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">TestExecutor в VSTest</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">public class</span> TestExecutor {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public void</span> ExecuteTests(IEnumerable&lt;TestCase&gt; tests) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">foreach</span> (<span class="keyword">var</span> test <span class="keyword">in</span> tests) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> instance = Activator.CreateInstance(test.TestType);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span> {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Invoke(instance, setUp);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Invoke(instance, test.TestMethod);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Invoke(instance, tearDown);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RecordResult(test, TestOutcome.Passed);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <span class="keyword">catch</span> (Exception ex) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RecordResult(test, TestOutcome.Failed, ex.Message);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">11</div>
+            </div>
+
+            <!-- СЕКЦИЯ 3: NUnit vs xUnit -->
+            
+            <!-- Слайд 12: NUnit vs xUnit -->
+            <div class="slide content-slide">
+                <h2 class="slide-title">NUnit vs xUnit</h2>
+                <div style="display: flex; justify-content: space-around; gap: 40px; width: 100%; margin-top: 40px;">
+                    <div style="flex: 1; text-align: left;">
+                        <h3 style="color: #667eea; font-size: 1.8em; margin-bottom: 20px;">NUnit</h3>
+                        <p style="font-size: 1.3em; margin: 15px 0;">✓ Создает <strong>один инстанс</strong> класса на все тесты</p>
+                        <p style="font-size: 1.3em; margin: 15px 0;">✓ Переиспользует объекты</p>
+                        <p style="font-size: 1.3em; margin: 15px 0;">✓ [OneTimeSetUp]/[OneTimeTearDown] один раз</p>
+                    </div>
+                    <div style="flex: 1; text-align: left;">
+                        <h3 style="color: #764ba2; font-size: 1.8em; margin-bottom: 20px;">xUnit</h3>
+                        <p style="font-size: 1.3em; margin: 15px 0;">✓ Создает <strong>новый инстанс</strong> для каждого теста</p>
+                        <p style="font-size: 1.3em; margin: 15px 0;">✓ Изоляция тестов</p>
+                        <p style="font-size: 1.3em; margin: 15px 0;">✓ Нет [OneTimeSetUp] - используется конструктор</p>
+                    </div>
+                </div>
+                <div class="slide-number">12</div>
+            </div>
+
+            <!-- СЕКЦИЯ 4: xUnit пайплайн -->
+            
+            <!-- Слайд 13: xUnit введение -->
+            <div class="slide content-slide">
+                <h2 class="slide-title">Архитектура xUnit</h2>
+                <p class="slide-subtitle">xUnit запускает свой фреймворк поверх VSTest</p>
+                <div class="slide-number">13</div>
+            </div>
+
+            <!-- Слайд 14: xUnit диаграмма -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">Пайплайн xUnit</h2>
+                <div class="mermaid">
+sequenceDiagram
+   participant VS as Visual Studio
+   participant VH as VSTestHost
+   participant xUD as xUnitDiscoverer<br/>(VSTest адаптер)
+   participant xUE as xUnitExecutor<br/>(VSTest адаптер)
+   participant xUF as xUnit.Runner<br/>(свой фреймворк)
+   participant Test as Test.dll
+   VS->>VH: Запустить тесты
+   VH->>xUD: DiscoverTests()
+   xUD->>xUF: Найти тесты через xUnit API
+   xUF->>Test: Assembly.LoadFrom()
+   xUF->>Test: GetTypes().GetMethods([Fact])
+   xUD->>VH: SendTestCase()
+   VH->>VS: Показать тесты
+   VS->>VH: RunTests(выбранные)
+   VH->>xUE: RunTests()
+   xUE->>xUF: Запустить тесты через xUnit runner
+   xUF->>Test: new TestClass() - для каждого теста!
+   xUF->>Test: Invoke([Test])
+   xUF->>xUE: TestResult
+   xUE->>VH: RecordResult()
+   VH->>VS: Результаты
+                </div>
+                <div class="slide-number">14</div>
+            </div>
+
+            <!-- СЕКЦИЯ 5: MicrosoftTestingPlatform -->
+            
+            <!-- Слайд 15: MTP введение -->
+            <div class="slide content-slide">
+                <h2 class="slide-title">MicrosoftTestingPlatform</h2>
+                <p class="slide-subtitle">Новый стандарт для тестовых фреймворков</p>
+                <div style="text-align: left; font-size: 1.3em; margin-top: 50px;">
+                    <p>🔄 Приходит на смену VSTest</p>
+                    <p>✓ Встроен прямо в dotnet test</p>
+                    <p>✓ Проще в разработке</p>
+                    <p>✓ Быстрее и легче</p>
+                </div>
+                <div class="slide-number">15</div>
+            </div>
+
+            <!-- Слайд 16: MTP требования -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">Минимальные требования MTP</h2>
+                <div style="text-align: left; font-size: 1.2em; max-width: 85%;">
+                    <div class="list-item"><strong>1. TestFrameworkCapabilities</strong> — описывает возможности фреймворка</div>
+                    <div class="list-item"><strong>2. ITestFramework</strong> — основной интерфейс с методами discovery и execution</div>
+                    <div class="list-item"><strong>3. Регистрация</strong> — через builder.RegisterTestFramework(...)</div>
+                    <div class="list-item"><strong>4. Твой формат тестов</strong> — атрибуты и методы как тебе нужны</div>
+                </div>
+                <div class="slide-number">16</div>
+            </div>
+
+            <!-- Слайд 17: TestFrameworkCapabilities -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">TestFrameworkCapabilities</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">public class</span> MiniUnitTestFrameworkCapabilities</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;: ITestFrameworkCapabilities {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span> IReadOnlyCollection&lt;ITestFrameworkCapability&gt;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Capabilities => [];</div>
+                    <div class="code-line">}</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line"><span class="comment">// Расширяемо для добавления специфичных возможностей:</span></div>
+                    <div class="code-line"><span class="comment">// - Параллельное выполнение</span></div>
+                    <div class="code-line"><span class="comment">// - Фильтрация тестов</span></div>
+                    <div class="code-line"><span class="comment">// - И т.д.</span></div>
+                </div>
+                <div class="slide-number">17</div>
+            </div>
+
+            <!-- Слайд 18: Регистрация через builder -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">Регистрация (Program.cs)</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">using</span> Microsoft.Testing.Platform.Builder;</div>
+                    <div class="code-line"><span class="keyword">using</span> MiniUnit.Adapter.MTP;</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line"><span class="keyword">var</span> builder = <span class="keyword">await</span> TestApplication</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;.CreateBuilderAsync(args);</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">builder.RegisterTestFramework(</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;_ => <span class="keyword">new</span> MiniUnitTestFrameworkCapabilities(),</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;(capabilities, serviceProvider) =></div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">new</span> MiniUnitTestFramework(capabilities, serviceProvider));</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line"><span class="keyword">using var</span> testApplication = <span class="keyword">await</span> builder.BuildAsync();</div>
+                    <div class="code-line"><span class="keyword">return await</span> testApplication.RunAsync();</div>
+                </div>
+                <div class="slide-number">18</div>
+            </div>
+
+            <!-- Слайд 19: Твой формат тестов -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.8em;">Твой формат тестов</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="comment">// TestAttribute с поддержкой имени</span></div>
+                    <div class="code-line">[<span class="attribute">AttributeUsage</span>(AttributeTargets.Method)]</div>
+                    <div class="code-line"><span class="keyword">public class</span> <span class="class-name">TestAttribute</span> : Attribute {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span> <span class="keyword">string</span>? Name { <span class="keyword">get</span>; <span class="keyword">set</span>; }</div>
+                    <div class="code-line">}</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line"><span class="comment">// Использование:</span></div>
+                    <div class="code-line">[<span class="attribute">TestFixture</span>]</div>
+                    <div class="code-line"><span class="keyword">public class</span> <span class="class-name">MyTests</span> {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;[<span class="attribute">Test</span>(Name = <span class="keyword">"Custom name"</span>)]</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public void</span> MyTest() { }</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">19</div>
+            </div>
+
+            <!-- Слайд 20: MTP ITestFramework -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">ITestFramework в MTP</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">public class</span> MiniUnitTestFramework : ITestFramework, IDataProducer {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public string</span> Uid => <span class="keyword">"MiniUnit"</span>;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public string</span> DisplayName => <span class="keyword">"MiniUnit Framework"</span>;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span> Type[] DataTypesProduced => <span class="keyword">new</span>[] { <span class="keyword">typeof</span>(TestNodeUpdateMessage) };</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span> Task&lt;CreateTestSessionResult&gt; CreateTestSessionAsync(...) { ... }</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span> Task ExecuteRequestAsync(ExecuteRequestContext context) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> context.Request <span class="keyword">switch</span> {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DiscoverTestExecutionRequest => HandleDiscovery(...),</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RunTestExecutionRequest => HandleExecution(...)</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">20</div>
+            </div>
+
+            <!-- Слайд 21: MTP Discovery -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">Discovery в MTP</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">private async</span> Task HandleDiscovery(DiscoverTestExecutionRequest req, ...) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> asm = Assembly.GetEntryAssembly();</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> tests = _discoverer.DiscoverTests(asm.Location);</div>
+                    <div class="code-line">&nbsp;</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">foreach</span> (<span class="keyword">var</span> test <span class="keyword">in</span> tests) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> node = <span class="keyword">new</span> TestNode {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Uid = <span class="keyword">new</span> TestNodeUid(test.FullyQualifiedName),</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DisplayName = test.DisplayName</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">await</span> context.MessageBus.PublishAsync(this, </div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">new</span> TestNodeUpdateMessage(req.Session.SessionUid, node));</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">21</div>
+            </div>
+
+            <!-- Слайд 22: MTP Execution -->
+            <div class="slide content-slide">
+                <h2 class="slide-title" style="font-size: 2.5em;">Execution в MTP</h2>
+                <div class="code-block" style="font-size: 0.95em;">
+                    <div class="code-line"><span class="keyword">private async</span> Task HandleExecution(RunTestExecutionRequest req, ...) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">foreach</span> (<span class="keyword">var</span> test <span class="keyword">in</span> testsToRun) {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_executor.TestResultReceived += (result) => {</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> stateProperty = GetStateProperty(result);</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">var</span> node = <span class="keyword">new</span> TestNode { ... };</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">await</span> context.MessageBus.PublishAsync(this, </div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">new</span> TestNodeUpdateMessage(..., node));</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_executor.ExecuteTests(<span class="keyword">new</span> List&lt;TestCase&gt; { test });</div>
+                    <div class="code-line">&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div class="code-line">}</div>
+                </div>
+                <div class="slide-number">22</div>
+            </div>
+
+            <!-- Слайд 23: Заключение -->
+            <div class="slide content-slide">
+                <h2 class="slide-title">Итого</h2>
+                <div style="text-align: left; font-size: 1.3em; margin-top: 50px;">
+                    <p style="margin: 20px 0;">✓ Минимальный фреймворк: Attributes + Assert + Runner</p>
+                    <p style="margin: 20px 0;">✓ VSTest адаптер: ITestDiscoverer + ITestExecutor</p>
+                    <p style="margin: 20px 0;">✓ MicrosoftTestingPlatform: ITestFramework + IDataProducer</p>
+                    <p style="margin: 20px 0;">✓ NUnit создает один инстанс, xUnit - много</p>
+                    <p style="margin: 20px 0;">✓ Выбор платформы: VSTest или MTP?</p>
+                </div>
+                <div class="slide-number">23</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="nav-button" id="prevBtn" onclick="prevSlide()">←</button>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <button class="nav-button" id="nextBtn" onclick="nextSlide()">→</button>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[n].classList.add('active');
+            
+            updateProgressBar();
+            updateNavButtons();
+            updateURL();
+            
+            mermaid.contentLoaded();
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        function updateProgressBar() {
+            let progress;
+            if (currentSlide === 0) {
+                progress = 0;
+            } else {
+                progress = (currentSlide / (totalSlides - 1)) * 100;
+            }
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function updateNavButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+            
+            document.getElementById('prevBtn').style.opacity = currentSlide === 0 ? '0.5' : '1';
+            document.getElementById('nextBtn').style.opacity = currentSlide === totalSlides - 1 ? '0.5' : '1';
+        }
+
+        function updateURL() {
+            window.location.hash = currentSlide;
+        }
+
+        function getSlideFromURL() {
+            const hash = window.location.hash.slice(1);
+            const slideNum = parseInt(hash, 10);
+            if (!isNaN(slideNum) && slideNum >= 0 && slideNum < totalSlides) {
+                return slideNum;
+            }
+            return 0;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        window.addEventListener('hashchange', () => {
+            const newSlide = getSlideFromURL();
+            if (newSlide !== currentSlide) {
+                currentSlide = newSlide;
+                showSlide(currentSlide);
+            }
+        });
+
+        currentSlide = getSlideFromURL();
+        showSlide(currentSlide);
+    </script>
+</body>
+</html>
