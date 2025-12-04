@@ -4,7 +4,6 @@ using MiniUnit.CalculatorLib;
 namespace MiniUnit.Basic;
 
 [TestFixture]
-[Parallelizable]
 public class CalculatorTests
 {
     private Calculator _calc = null!;

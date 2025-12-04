@@ -4,7 +4,7 @@ using MiniUnit.Adapter.Reflection;
 using MiniUnit.CalculatorLib;
 // ReSharper disable All
 
-namespace MiniUnit.Tests.Reflection;
+namespace MiniUnit.Tests;
 
 public class CalculatorTests
 {

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.Testing.Platform.Capabilities.TestFramework;
 using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Extensions.TestFramework;
-using Microsoft.Testing.Platform.Messages;
 using Microsoft.Testing.Platform.Requests;
 // ReSharper disable UnusedMember.Local
 

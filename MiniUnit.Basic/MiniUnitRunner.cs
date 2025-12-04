@@ -25,14 +25,14 @@ public static class MiniUnitRunner
             var (oneTimeSetUp, oneTimeTearDown, setUp, tearDown, tests)
                 = InspectFixture(fixture, filter);
 
-            object? fxInstance;
+            object? testClassInstance;
 
             // 2. Создаем класс нашего теста, чтобы было у кого вызывать методы
             // и запускаем OneTimeSetup первым
             try
             {
-                fxInstance = Activator.CreateInstance(fixture);
-                await InvokeAsync(fxInstance, oneTimeSetUp);
+                testClassInstance = Activator.CreateInstance(fixture);
+                await InvokeAsync(testClassInstance, oneTimeSetUp);
             }
             catch (Exception e)
             {
@@ -51,11 +51,11 @@ public static class MiniUnitRunner
                 try
                 {
                     // 4. Перед запуском теста прогоняем Setup
-                    await InvokeAsync(fxInstance, setUp);
+                    await InvokeAsync(testClassInstance, setUp);
                     // 5. Потом сам тест
-                    await InvokeAsync(fxInstance, test);
+                    await InvokeAsync(testClassInstance, test);
                     // 6. Ну и делаем тир-даун
-                    await InvokeAsync(fxInstance, tearDown);
+                    await InvokeAsync(testClassInstance, tearDown);
                     WriteGreen($"[PASS] {fixtureName}.{display}");
                     passed++;
                 }
@@ -77,7 +77,7 @@ public static class MiniUnitRunner
             // 7. Ну и напоследок после всех тестов запускаем OneTimeTearDown
             try
             {
-                await InvokeAsync(fxInstance, oneTimeTearDown);
+                await InvokeAsync(testClassInstance, oneTimeTearDown);
             }
             catch (Exception e)
             {
@@ -91,7 +91,7 @@ public static class MiniUnitRunner
     }
 
     private static (MethodInfo? oneTimeSetUp, MethodInfo? oneTimeTearDown, MethodInfo? setUp, MethodInfo? tearDown, List<MethodInfo> tests)
-        InspectFixture(Type fxType, string? filter)
+        InspectFixture(Type testClass, string? filter)
     {
         MethodInfo? otsu = null;
         MethodInfo? otd = null;
@@ -99,7 +99,7 @@ public static class MiniUnitRunner
         MethodInfo? td = null;
         var tests = new List<MethodInfo>();
 
-        foreach (var m in fxType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+        foreach (var m in testClass.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
         {
             if (m.GetCustomAttribute<OneTimeSetUpAttribute>() != null) otsu = m;
             else if (m.GetCustomAttribute<SetUpAttribute>() != null) su = m;

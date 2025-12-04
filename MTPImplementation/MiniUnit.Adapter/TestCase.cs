@@ -3,20 +3,16 @@ using System.Reflection;
 
 namespace MiniUnit.Adapter.MTP;
 
-public class TestCase
+public class TestCase(
+    string fullyQualifiedName,
+    string displayName,
+    string source,
+    Type testType,
+    MethodInfo testMethod)
 {
-    public string FullyQualifiedName { get; }
-    public string DisplayName { get; }
-    public string Source { get; }
-    public Type TestType { get; }
-    public MethodInfo TestMethod { get; }
-
-    public TestCase(string fullyQualifiedName, string displayName, string source, Type testType, MethodInfo testMethod)
-    {
-        FullyQualifiedName = fullyQualifiedName;
-        DisplayName = displayName;
-        Source = source;
-        TestType = testType;
-        TestMethod = testMethod;
-    }
+    public string FullyQualifiedName { get; } = fullyQualifiedName;
+    public string DisplayName { get; } = displayName;
+    public string Source { get; } = source;
+    public Type TestType { get; } = testType;
+    public MethodInfo TestMethod { get; } = testMethod;
 }
